@@ -12,7 +12,7 @@
 ################################################################################
 
 # Población por Comuna
-archivo <- "/mnt/windows/Users/osmar_000/Documents/IPCM 2019/Proyecciones_De_Poblaci_n_Medell_n_2016_2020.csv"
+archivo <- "./Proyecciones_De_Poblaci_n_Medell_n_2016_2020.csv"
 pob <- read.table(archivo,header=T,sep=',',encoding='UTF-8')
 
 names(pob)[3] <- 'Comuna'
@@ -54,7 +54,7 @@ errImpl <- function(N,Z,p,n){
 
 # Cargue proyecciones poblacionales para obtener población total
 # de Medellín
-archivo <- "/mnt/windows/Users/osmar_000/Documents/Censo/Proyecciones-poblacion-Municipal_2018-2035.csv"
+archivo <- "./Proyecciones-poblacion-Municipal_2018-2035.csv"
 pobMed <- read.table(archivo,header=T,sep=';',encoding='UTF-8')
 
 pobMed <- subset(pobMed, AÑO==2022 & DPMP==5001)
@@ -117,7 +117,7 @@ library(tmap)
 #               encoding='UTF-8')
 
 #
-ruta <- "/mnt/windows/Users/osmar_000/Documents/Indice Violencia Mujer"
+ruta <- "./Shapes"
 shp <- readOGR(dsn=ruta, layer='Limite_Barrio_Vereda_Catastral',
                encoding='UTF-8')
 
@@ -128,7 +128,7 @@ shp$COMUNA <- as.character(shp$COMUNA)
 plot(shp)
 
 ################################################################################
-ruta <- "/mnt/windows/Users/osmar_000/Documents/Indice Violencia Mujer"
+ruta <- "./Shapes"
 
 # Shape nomenclatura urbana
 lotes <- readOGR(dsn=ruta, layer='Nomenclatura_Domiciliaria',
@@ -196,7 +196,7 @@ Ndir;Ndir
 shC <- pobC$pob_2020/sum(pobC$pob_2020)
 shC <- data.frame(nomComuna=pobC$COMUNA, shC=shC)
 
-codComuna <- read.table("/home/osmar/Documents/ECC 2021/codComuna.csv", 
+codComuna <- read.table("./codComuna.csv", 
                         header=T, sep=';')
 shC <- merge(shC, codComuna, by='nomComuna', all=T)
 shD <- data.frame(codComuna=as.numeric(names(Ndir2)),shD=Ndir2/sum(Ndir2))
@@ -204,7 +204,7 @@ shD <- data.frame(codComuna=as.numeric(names(Ndir2)),shD=Ndir2/sum(Ndir2))
 shD <- merge(shC,shD,by='codComuna',all=T)
 names(shD)[3:4] <- c('participacion.poblacion','particiacion.direcciones')
 
-write.table(shD,'/home/osmar/Documents/ECC 2021/sh_dir.csv',sep=';',row.names=F)
+write.table(shD,'./sh_dir.csv',sep=';',row.names=F)
 
 
 # Se establecen las probabilidades de elección de cada manzana
@@ -445,11 +445,11 @@ direcciones$Barrio <- x$NOMBRE_BAR
 direcciones$Comuna2 <- x$COMUNA
 
 write.table(direcciones@data,
-            'Indice Violencia Mujer/muestra violencia mujer.csv',
+            './muestra violencia mujer.csv',
             sep=';',row.names=FALSE)
 
 writeOGR(direcciones,
-         dsn='Indice Violencia Mujer',
+         dsn='Shapes',
          layer='muestra violencia mujer',
          driver="ESRI Shapefile",
          overwrite_layer=TRUE)
@@ -457,86 +457,3 @@ writeOGR(direcciones,
 
 
 ################################################################################
-
-orSample <- read.table(
-  'Indice Violencia Mujer/muestra violencia mujer.csv',
-  sep=';',header=TRUE,comment.char='',colClasses = 'character')
-all.equal(sort(orSample$direcciones),
-          sort(direcciones$direcciones))
-
-bord@data[bord$COMUNA=='08','NOMBRE_BAR']
-
-vetados <- c('Las Estancias','Villa Liliam',
-             'Villa Turbay','La Sierra','Llanaditas')
-vetados <- subset(bord, NOMBRE_BAR %in% vetados)
-
-tm_basemap("OpenStreetMap") +
-  tm_shape(vetados) + tm_fill('black',alpha=0.5) +
-  tm_borders('blue') +
-  tm_shape(
-    manzanas[manzanas$Comuna!='02' &
-               manzanas$sampstatus=='Seleccionada',],
-    name='Manzanas') + 
-  tm_fill('red4',alpha=0.5) 
-
-# Direcciones para reemplazar las de barrios vetados
-direccionesR <- lotes
-direccionesR$direcciones <- paste(direccionesR$VIA,
-                                  direccionesR$PLACA,sep=' #')
-
-table(duplicated(direccionesR$direcciones))
-
-vetados <- c('Las Estancias','Villa Liliam',
-             'Villa Turbay','La Sierra','Llanaditas')
-bordR <- subset(bord, !(NOMBRE_BAR %in% vetados))
-
-direccionesR <- direccionesR[!duplicated(direccionesR$direcciones),]
-
-direccionesR <- subset(direccionesR, Manzana %in% unlist(sel))
-
-direccionesR <- direccionesR[bordR,]
-
-com <- '08'
-n <- 300
-
-set.seed(2102019)
-
-seldir <- list()
-for(i in seq_along(com)){
-  seldir[[i]] <- sample(direccionesR@data[direccionesR$Comuna==com[i],'direcciones'],
-                        n[i]  )
-}
-
-sapply(seldir,length)
-
-direccionesR <- subset(direccionesR,direcciones %in% unlist(seldir))
-dim(direccionesR)
-row.names(direccionesR) <- direccionesR$direcciones
-
-dupl <- direccionesR$direcciones %in% orSample$direcciones
-table(dupl)
-
-direccionesR <- direccionesR[!(dupl),]
-dim(direccionesR)
-
-direccionesR <- direccionesR[1:150,]
-
-write.table(direccionesR@data,
-            'Indice Violencia Mujer/muestra violencia mujer reemplazo comuna 8.csv',
-            sep=';',row.names=FALSE)
-
-TF3 <- tm_basemap("OpenStreetMap") +
-  tm_shape(
-    manzanas[manzanas$Comuna!='02' &
-               manzanas$sampstatus=='Seleccionada',],
-    name='Manzanas') + 
-  tm_fill('red4',alpha=0.5) +
-  tm_shape(direcciones[direcciones$Comuna!='02',],name='Direcciones') + 
-  tm_dots('red',popup.vars='direcciones') +
-  tm_shape(direccionesR,name='Direcciones Reemplazo') + 
-  tm_dots('blue',popup.vars='direcciones') +
-  tm_layout(legend.outside=TRUE,main.title='Villa Hermosa y Centro')
-TF3
-
-tmap_save(TF3,
-          filename = "muestra villa hermosa reemplazo.html")
